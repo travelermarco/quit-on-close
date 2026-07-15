@@ -1,112 +1,112 @@
+*[Leggi questo in italiano](README.it.md)*
+
 # QuitOnClose
 
-macOS, per default, lascia le applicazioni in esecuzione anche quando chiudi
-l'ultima finestra con il pallino rosso: restano "vive" nel Dock finché non
-premi `Cmd+Q`. Su Windows, invece, chiudere l'ultima finestra chiude anche il
-programma.
+By default, macOS keeps an application running even after you close its last
+window with the red button: it stays "alive" in the background until you
+press `Cmd+Q`. On Windows, closing the last window closes the program too.
 
-**QuitOnClose** replica il comportamento di Windows su macOS: quando chiudi
-l'ultima finestra di un'applicazione, l'app viene chiusa per davvero — nessuna
-icona in più da tenere a mente, nessun `Cmd+Q` da ricordarsi.
+**QuitOnClose** brings that Windows behaviour to macOS: when you close an
+app's last window, the app actually quits — no more windows to keep track
+of, no more `Cmd+Q` to remember.
 
-Non è un'app con finestre o menu: gira in background, senza icona nel Dock né
-nella barra dei menu. A livello di interfaccia grafica non cambia assolutamente
-nulla: l'unica differenza percepibile è che chiudere l'ultima finestra chiude
-anche il programma, come su Windows.
+It's not an app with windows or menus: it runs silently in the background,
+with no Dock icon and no menu bar item. Nothing changes visually — the only
+difference you'll notice is that closing the last window also closes the
+program, just like on Windows.
 
-## Come funziona
+## How it works
 
-QuitOnClose usa le API di Accessibilità di macOS (le stesse usate da
-VoiceOver e dai principali tool di window management) per osservare, per ogni
-applicazione "normale" (quelle con icona nel Dock), la creazione e la
-chiusura delle finestre.
+QuitOnClose uses the macOS Accessibility API (the same one VoiceOver and
+window-management utilities use) to observe window creation and destruction
+for every "regular" application (i.e. every app with a Dock icon).
 
-Quando una finestra viene chiusa, QuitOnClose controlla se era l'ultima
-finestra rimasta di quell'app. Se sì, chiede all'app di terminare
-(`NSRunningApplication.terminate()` — lo stesso segnale di `Cmd+Q`), quindi
-se ci sono documenti non salvati l'app mostrerà comunque il suo normale
-dialogo "Vuoi salvare le modifiche?".
+When a window closes, QuitOnClose checks whether it was that app's last
+remaining window. If so, it asks the app to quit
+(`NSRunningApplication.terminate()` — the exact same signal as `Cmd+Q`), so
+if there are unsaved documents the app still shows its normal "Do you want
+to save changes?" dialog.
 
-Cose che **non** succedono:
-- minimizzare una finestra (pallino giallo) non chiude l'app;
-- le app in background/senza icona nel Dock (agent, utility nella menu bar)
-  non vengono mai toccate — sono escluse automaticamente;
-- Finder è escluso di default (vedi sotto).
+Things that **don't** happen:
+- minimizing a window (yellow button) does not quit the app;
+- background apps with no Dock icon (menu-bar-only agents, utilities) are
+  never touched — they're automatically excluded;
+- Finder is excluded by default (see below).
 
-## Requisiti
+## Requirements
 
-- macOS 13 (Ventura) o successivo
-- Xcode Command Line Tools (per compilare): `xcode-select --install`
-- Permesso di **Accessibilità** concesso all'app (obbligatorio: senza questo
-  permesso macOS non consente di osservare le finestre di altre app)
+- macOS 13 (Ventura) or later
+- Xcode Command Line Tools (to build): `xcode-select --install`
+- **Accessibility** permission granted to the app (required: macOS won't let
+  any app observe another app's windows without it)
 
-## Installazione
+## Installation
 
 ```bash
-./Scripts/build.sh      # compila e crea dist/QuitOnClose.app
-./Scripts/install.sh    # copia in /Applications e registra l'avvio automatico al login
+./Scripts/build.sh      # builds dist/QuitOnClose.app
+./Scripts/install.sh    # copies it to /Applications and registers login auto-start
 ```
 
-Al primo avvio macOS richiede il permesso di Accessibilità. Vai in:
+On first run, macOS will ask for Accessibility permission. Go to:
 
-**Impostazioni di Sistema → Privacy e Sicurezza → Accessibilità**
+**System Settings → Privacy & Security → Accessibility**
 
-e attiva **QuitOnClose**. Se il prompt di sistema non compare da solo:
+and enable **QuitOnClose**. If the system prompt doesn't appear on its own:
 
 ```bash
 open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
 ```
 
-Finché il permesso non è concesso, QuitOnClose resta inerte (non chiude
-nulla): controlla ogni paio di secondi se il permesso è stato dato e si
-attiva automaticamente non appena lo concedi, senza bisogno di riavviarlo.
+Until the permission is granted, QuitOnClose stays idle (it won't quit
+anything): it checks every couple of seconds and activates automatically as
+soon as you grant it, no restart needed.
 
-QuitOnClose si avvia da solo ad ogni login (tramite un LaunchAgent) e non
-compare né nel Dock né nella barra dei menu.
+QuitOnClose starts itself at every login (via a LaunchAgent) and never shows
+up in the Dock or the menu bar.
 
-## Escludere delle app
+## Excluding apps
 
-Alcune app (es. Finder) è meglio che restino sempre attive. L'elenco di
-esclusione si trova in:
+Some apps (e.g. Finder) are better left always running. The exclusion list
+lives at:
 
 ```
 ~/Library/Application Support/QuitOnClose/excluded-bundle-ids.txt
 ```
 
-Contiene un bundle identifier per riga (`com.apple.finder` è escluso di
-default). Per trovare il bundle identifier di un'app:
+One bundle identifier per line (`com.apple.finder` is excluded by default).
+To find an app's bundle identifier:
 
 ```bash
 osascript -e 'id of app "Mail"'
 ```
 
-Aggiungi l'ID all'elenco, poi riavvia QuitOnClose:
+Add the ID to the list, then restart QuitOnClose:
 
 ```bash
 launchctl kickstart -k gui/$(id -u)/com.travelermarco.quitonclose
 ```
 
-## Log
+## Logs
 
 ```
 ~/Library/Logs/QuitOnClose.log
 ```
 
-## Disinstallazione
+## Uninstalling
 
 ```bash
 ./Scripts/uninstall.sh
 ```
 
-Rimuove il LaunchAgent e l'app da `/Applications`. Ricorda di togliere
-QuitOnClose anche dall'elenco Accessibilità in Impostazioni di Sistema, se
-non ti serve più.
+Removes the LaunchAgent and the app from `/Applications`. Remember to also
+remove QuitOnClose from the Accessibility list in System Settings if you no
+longer need it.
 
-## Limiti noti
+## Known limitations
 
-- Alcune app, durante transizioni particolari (es. entrata/uscita da
-  schermo intero), distruggono e ricreano brevemente la finestra: QuitOnClose
-  aspetta ~350ms prima di verificare che le finestre siano davvero a zero,
-  proprio per evitare falsi positivi in questi casi limite.
-- Le app devono esporre le proprie finestre tramite le API di Accessibilità
-  standard (praticamente tutte le app macOS native lo fanno).
+- Some apps briefly destroy and recreate a window during certain transitions
+  (e.g. entering/exiting full screen). QuitOnClose waits ~350ms before
+  re-checking that the window count is really zero, specifically to avoid
+  false positives in these edge cases.
+- Apps must expose their windows through the standard Accessibility API
+  (virtually every native macOS app does).
