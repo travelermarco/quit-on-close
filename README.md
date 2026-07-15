@@ -1,5 +1,3 @@
-*[Leggi questo in italiano](README.it.md)*
-
 # QuitOnClose
 
 By default, macOS keeps an application running even after you close its last
